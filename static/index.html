@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Random Fun Fact</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            /* Added to align items vertically */
+        }
+
+        #getNumberButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px;
+            /* Added margin to separate button from fact */
+        }
+
+        #getNumberButton:hover {
+            background-color: #45a049;
+        }
+
+        #fact {
+            padding: 20px;
+            background-color: #c3c3c7ae;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        #fact:empty {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="getNumberButton">Get Random Fun Fact</button>
+    <div id="fact"></div>
+
+    <script>
+        document.getElementById('getNumberButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost/api/v1/randomFact');
+                const data = await response.json();
+                document.getElementById('fact').textContent = `Fact #${data.number}: ${data.fact}`;
+            } catch (error) {
+                console.error('Error fetching fact:', error);
+            }
+        });
+    </script>
+</body>
+
+</html>

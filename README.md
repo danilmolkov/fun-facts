@@ -7,6 +7,10 @@ This project by me to learn how to work with Terraform. I took Yandex Cloud as c
 The Service is a web application which gives random fun facts. It has a server
 and redis database. Both instances based on VM.
 
+**Note**: This setup doesn't represent the best effort, optimization or economy.
+Every particular way of realization has been chosen by means of my personal desire
+to try this exact way.
+
 ## YC setup
 
 ```bash
@@ -26,7 +30,9 @@ export YC_FOLDER_ID=$(yc config get folder-id)
 
 - [x] First commit, setup is working locally, basic tf file is created.
 - [x] Creating and starting server via "null_resource".
-- [ ] Creating and starting redis via "null_resource".
+- [x] Creating and starting redis via "null_resource".
+- [ ] Creating init job using lambda function to fill in database.
+- [ ] Create a separate disk to store data.
 - [ ] Creating and starting server and redis via "ansible".
 - [ ] Add second server replica and load-balancer.
 - [ ] Create server package to remove properly start execution

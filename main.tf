@@ -15,20 +15,12 @@ resource "yandex_compute_disk" "boot-disk-1" {
   name     = "boot-disk-1"
   type     = "network-hdd"
   zone     = "ru-central1-a"
-  size     = "8"
-  image_id = "fd85u0rct32prepgjlv0"
+  size     = "3"
+  image_id = "fd8tervp942bbtdojq9e"
 }
 
-# resource "yandex_compute_disk" "boot-disk-2" {
-#   name     = "boot-disk-2"
-#   type     = "network-hdd"
-#   zone     = "ru-central1-a"
-#   size     = "20"
-#   image_id = "fd8lq1r1bfvu5l6js1af"
-# }
-
 resource "yandex_compute_instance" "server" {
-  name = "terraform1"
+  name = "server"
 
   resources {
     cores  = 2
@@ -54,7 +46,10 @@ output "metadata-server" {
 }
 
 resource "null_resource" "run-server" {
-  depends_on = [yandex_compute_instance.server]
+  depends_on = [
+    yandex_compute_instance.server,
+    yandex_compute_instance.db
+  ]
   triggers = {
     always_run = "${timestamp()}"
   }
@@ -103,9 +98,11 @@ resource "null_resource" "run-server" {
 
   provisioner "remote-exec" {
     inline = [
+      "echo 'replace ip adress in index.html'",
+      "sed -i 's/localhost/${yandex_compute_instance.server.network_interface.0.nat_ip_address}/g' /home/yc-practitioner/static/index.html",
       "echo 'starting server'",
       "chmod 711 /home/yc-practitioner/fun-facts",
-      "nohup sudo /home/yc-practitioner/fun-facts &",
+      "nohup sudo /home/yc-practitioner/fun-facts -redisAddress ${yandex_compute_instance.db.network_interface.0.ip_address}:6379 &",
       "sleep 2", # dirty-hack to start detached process from https://stackoverflow.com/questions/36207752/how-can-i-start-a-remote-service-using-terraform-provisioning
       "echo 'server started!'",
     ]
@@ -127,9 +124,6 @@ resource "null_resource" "run-server" {
 #     memory = 2
 #   }
 
-#   boot_disk {
-#     disk_id = yandex_compute_disk.boot-disk-2.id
-#   }
 
 #   network_interface {
 #     subnet_id = yandex_vpc_subnet.subnet-1.id
@@ -150,15 +144,29 @@ resource "yandex_vpc_subnet" "subnet-1" {
   zone           = "ru-central1-a"
   network_id     = yandex_vpc_network.network-1.id
   v4_cidr_blocks = ["192.168.10.0/24"]
+  route_table_id = yandex_vpc_route_table.rt.id
+}
+
+
+resource "yandex_vpc_gateway" "nat_gateway" {
+  name = "test-gateway"
+  shared_egress_gateway {
+  }
+}
+
+resource "yandex_vpc_route_table" "rt" {
+  name       = "test-rt"
+  network_id = yandex_vpc_network.network-1.id
+
+  static_route {
+    destination_prefix = "0.0.0.0/0"
+    gateway_id         = yandex_vpc_gateway.nat_gateway.id
+  }
 }
 
 output "internal_ip_address_server" {
   value = yandex_compute_instance.server.network_interface.0.ip_address
 }
-
-# output "internal_ip_address_db" {
-#   value = yandex_compute_instance.db.network_interface.0.ip_address
-# }
 
 output "external_ip_address_server" {
   value = yandex_compute_instance.server.network_interface.0.nat_ip_address

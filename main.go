@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"math/rand/v2"
 	"net/http"
@@ -10,21 +11,20 @@ import (
 	"github.com/go-redis/redis"
 )
 
+var client *redis.Client
+
 func receiveJSONHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		r.Response.StatusCode = 405
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
 	// ctx := context.Background()
 	// var, err := client
 	factsSize, err := client.LLen("fun-facts").Result()
 	if err != nil {
-		panic(err)
+		log.Print("Can't connect to redis!")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 	currentFactIndex := rand.Int64N(factsSize)
 	val, err := client.Get(strconv.FormatInt(currentFactIndex, 10)).Result()
@@ -43,8 +43,23 @@ func receiveJSONHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+func StartRedis(redisAddress *string) {
+	log.Printf("Connecting to Redis on %s ", *redisAddress)
+	client = redis.NewClient(&redis.Options{
+		Addr:     *redisAddress,
+		Password: "",
+		DB:       0,
+	})
+	if client == nil {
+		log.Fatal("Could not connect to Redis")
+	}
+}
+
 func main() {
 	log.Print("Starting server")
+	redisAddress := flag.String("redisAddress", "localhost:6379", "Address to Redis Server")
+	flag.Parse()
+	StartRedis(redisAddress)
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("./static"))
 	// routes

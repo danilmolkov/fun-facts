@@ -1,9 +1,12 @@
 #cloud-config
 ssh_pwauth: no
+
 users:
   - name: yc-practitioner
+    gecos: Yandex Cloud Practitioner
     groups: sudo
     shell: /bin/bash
     sudo: "ALL=(ALL) NOPASSWD:ALL"
-    ssh-authorized-keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDOvFgjlvjLE7qyTcmrNWbNZyGsD5dx9/4EXKXzpT/nA # change hardcoding pub key
+    # change hardcoding pub key
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMSkiqSEUWwAsrsufrU90CpMoQZ0q2G1zmPBPbScGsE

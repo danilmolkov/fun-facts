@@ -1,4 +1,6 @@
+#! /usr/bin/python3
 import redis
+import os
 
 def read_file_and_put_to_redis(file_path, redis_host='localhost', redis_port=6379, list_name='fun-facts'):
     # Connect to Redis
@@ -28,23 +30,31 @@ def add_key_value_from_file(file_path, redis_host='localhost', redis_port=6379):
         for line in file:
             # Remove newline characters
             line = line.strip()
-            print(f"Add fact: {counter}:{line}")
             # Put the line as key value
             r.set(counter, line)
             counter+=1
-    print("File contents have been added to Redis list:", list_name)
+    print(f"Totally added {counter} facts")
     file.close()
     r.close()
 
-
-
-
-
-if __name__ == "__main__":
+def main():
     # Fill up redis db
     redis_host = 'localhost'
+    try:
+        redis_host = os.environ['REDIS_HOST']
+    except KeyError:
+        pass
+
     redis_port = 6379
+    try:
+        redis_port = int(os.environ['REDIS_PORT'])
+    except KeyError:
+        pass
+
     list_name = 'fun-facts'
-    file_path = "fun-facts.txt"  # Path to your text file
+    file_path = "init-job/fun-facts.txt"  # Path to your text file
     read_file_and_put_to_redis(file_path, redis_host, redis_port, list_name)
     add_key_value_from_file(file_path, redis_host, redis_port)
+
+if __name__ == "__main__":
+    main()

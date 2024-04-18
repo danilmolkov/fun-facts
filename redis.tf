@@ -1,18 +1,21 @@
 resource "yandex_compute_disk" "boot-disk-2" {
   name     = "boot-disk-2"
   type     = "network-hdd"
-  zone     = "ru-central1-a"
+  zone     = var.zone
   size     = "3"
   image_id = "fd8tervp942bbtdojq9e"
 }
 
 
 resource "yandex_compute_instance" "db" {
-  name = "db"
+  name        = "db"
+  description = "Database server by ${local.author}"
+  zone        = var.zone
 
   resources {
-    cores  = 2
-    memory = 2
+    cores         = 2
+    memory        = 2
+    core_fraction = 20
   }
 
   boot_disk {
@@ -27,36 +30,43 @@ resource "yandex_compute_instance" "db" {
   metadata = {
     user-data = "${file("metadata.yaml")}"
   }
-
 }
 
-
-output "metadata-db" {
-  value = yandex_compute_instance.server.metadata.user-data
-}
-
-resource "null_resource" "run-db" {
+resource "terraform_data" "run-db" {
   depends_on = [
     yandex_compute_instance.server,
     yandex_compute_instance.db
   ]
-  # triggers = {
-  #   always_run = "${timestamp()}"
-  # }
+  triggers_replace = {
+    always_run = "${timestamp()}"
+  }
+
+  connection {
+    type        = "ssh"
+    user        = var.username
+    private_key = file("~/.ssh/yc.key")
+    host        = yandex_compute_instance.db.network_interface.0.ip_address
+
+    bastion_host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
+    bastion_user        = var.username
+    bastion_private_key = file("~/.ssh/yc.key")
+  }
 
   provisioner "remote-exec" {
     inline = [
-      "echo 'hello from DB!'",
-      "sudo apt-get install redis -y"
+      "echo 'Hello from DB!'",
+      "sleep 10",
+      "sudo apt-get update",
+      "sudo apt-get install redis python3 python3-pip unzip -y"
     ]
     connection {
       type        = "ssh"
-      user        = "yc-practitioner"
+      user        = var.username
       private_key = file("~/.ssh/yc.key")
       host        = yandex_compute_instance.db.network_interface.0.ip_address
 
       bastion_host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
-      bastion_user        = "yc-practitioner"
+      bastion_user        = var.username
       bastion_private_key = file("~/.ssh/yc.key")
     }
   }
@@ -66,12 +76,27 @@ resource "null_resource" "run-db" {
     destination = "/home/yc-practitioner/redis.conf"
     connection {
       type        = "ssh"
-      user        = "yc-practitioner"
+      user        = var.username
       private_key = file("~/.ssh/yc.key")
       host        = yandex_compute_instance.db.network_interface.0.ip_address
 
       bastion_host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
-      bastion_user        = "yc-practitioner"
+      bastion_user        = var.username
+      bastion_private_key = file("~/.ssh/yc.key")
+    }
+  }
+
+  provisioner "file" {
+    source      = "artifacts/init-job.zip"
+    destination = "/home/yc-practitioner/init-job.zip"
+    connection {
+      type        = "ssh"
+      user        = var.username
+      private_key = file("~/.ssh/yc.key")
+      host        = yandex_compute_instance.db.network_interface.0.ip_address
+
+      bastion_host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
+      bastion_user        = var.username
       bastion_private_key = file("~/.ssh/yc.key")
     }
   }
@@ -80,7 +105,11 @@ resource "null_resource" "run-db" {
     inline = [
       "sudo cp -rp /home/yc-practitioner/redis.conf /etc/redis/redis.conf",
       "sudo systemctl restart redis-server",
-      "echo 'redis-server is ready'"
+      "echo 'redis-server is ready'",
+      "echo 'Start init-job'",
+      "unzip init-job.zip",
+      "pip3 install -r init-job/requirements.txt",
+      "python3 init-job/init-job.py"
     ]
     connection {
       type        = "ssh"
@@ -93,18 +122,6 @@ resource "null_resource" "run-db" {
       bastion_private_key = file("~/.ssh/yc.key")
     }
   }
-
-  # provisioner "file" {
-  #   source      = "static/index.html"
-  #   destination = "/home/yc-practitioner/static/index.html"
-  #   connection {
-  #     type        = "ssh"
-  #     user        = "yc-practitioner"
-  #     private_key = file("~/.ssh/yc.key")
-  #     host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
-  #   }
-  # }
-
 }
 
 output "internal_ip_address_db" {

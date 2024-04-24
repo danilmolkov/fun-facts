@@ -61,7 +61,7 @@ func main() {
 	flag.Parse()
 	StartRedis(redisAddress)
 	mux := http.NewServeMux()
-	fs := http.FileServer(http.Dir("./static"))
+	fs := http.FileServer(http.Dir("/var/funfacts/static"))
 	// routes
 	mux.HandleFunc("/api/v1/randomFact", receiveJSONHandler)
 	mux.Handle("/", fs)

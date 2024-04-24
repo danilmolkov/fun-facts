@@ -37,9 +37,6 @@ resource "terraform_data" "run-db" {
     yandex_compute_instance.server,
     yandex_compute_instance.db
   ]
-  triggers_replace = {
-    always_run = "${timestamp()}"
-  }
 
   connection {
     type        = "ssh"

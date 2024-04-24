@@ -1,0 +1,11 @@
+[Unit]
+Description=Handling fun-facts requests from frontend
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/fun-facts -redisAddress=localhost:6379
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

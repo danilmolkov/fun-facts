@@ -10,3 +10,4 @@ users:
     # change hardcoding pub key
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMSkiqSEUWwAsrsufrU90CpMoQZ0q2G1zmPBPbScGsE
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIiMB9eBJauWWpPLJ/rePi9+Cvg8Z+InGiX3WORcEdML

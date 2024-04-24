@@ -1,0 +1,9 @@
+Package: fun-facts
+Version: 0.1
+Section: unknown
+Priority: optional
+Architecture: amd64
+Essential: no
+Installed-Size: 8688
+Maintainer: Daniil Molkov
+Description: Handling fun-facts requests from frontend

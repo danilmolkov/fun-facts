@@ -37,6 +37,7 @@ export YC_FOLDER_ID=$(yc config get folder-id)
 - [ ] Create a separate disk to store data.
 - [ ] Creating and starting server and redis via "ansible".
 - [ ] Add second server replica and load-balancer.
-- [ ] Create server package to remove properly start execution
+- [x] Create server package to properly start execution
+- [ ] Change hardcoded public key
 
 [YC setup]: https://cloud.yandex.com/en/docs/tutorials/infrastructure-management/terraform-quickstart

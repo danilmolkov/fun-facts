@@ -37,23 +37,10 @@ resource "terraform_data" "run-server" {
     yandex_compute_instance.server,
     yandex_compute_instance.db
   ]
-  triggers_replace = {
-    always_run = "${timestamp()}"
-  }
-
-  provisioner "remote-exec" {
-    inline = ["mkdir -p /home/${var.username}/static", "sudo killall fun-facts; echo fun-facts killed"]
-    connection {
-      type        = "ssh"
-      user        = var.username
-      private_key = file("~/.ssh/yc.key")
-      host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
-    }
-  }
 
   provisioner "file" {
-    source      = "./artifacts/linux/fun-facts"
-    destination = "/home/${var.username}/fun-facts"
+    source      = "./artifacts/package.deb"
+    destination = "/home/${var.username}/package.deb"
     connection {
       type        = "ssh"
       user        = var.username
@@ -63,18 +50,14 @@ resource "terraform_data" "run-server" {
   }
 
   provisioner "remote-exec" {
-    inline = ["mkdir -p /home/yc-practitioner/static"]
-    connection {
-      type        = "ssh"
-      user        = var.username
-      private_key = file("~/.ssh/yc.key")
-      host        = yandex_compute_instance.server.network_interface.0.nat_ip_address
-    }
-  }
-
-  provisioner "file" {
-    source      = "static/index.html"
-    destination = "/home/yc-practitioner/static/index.html"
+    inline = [
+      "sleep 10",
+      "sudo apt-get update && sudo apt-get install --only-upgrade dpkg -y",
+      "sudo dpkg -i package.deb",
+      "sudo sed -i 's/localhost/${yandex_compute_instance.server.network_interface.0.nat_ip_address}/g' /var/funfacts/static/index.html",
+      "sudo sed -i 's/localhost/${yandex_compute_instance.db.network_interface.0.ip_address}/g' /lib/systemd/system/funfacts.service",
+      "sudo systemctl start funfacts.service"
+    ]
     connection {
       type        = "ssh"
       user        = var.username
@@ -86,12 +69,6 @@ resource "terraform_data" "run-server" {
   provisioner "remote-exec" {
     inline = [
       "echo 'replace ip adress in index.html'",
-      "sed -i 's/localhost/${yandex_compute_instance.server.network_interface.0.nat_ip_address}/g' /home/${var.username}/static/index.html",
-      "echo 'starting server'",
-      "chmod 711 /home/${var.username}/fun-facts",
-      "nohup sudo /home/${var.username}/fun-facts -redisAddress ${yandex_compute_instance.db.network_interface.0.ip_address}:6379 &",
-      "sleep 2", # dirty-hack to start detached process from https://stackoverflow.com/questions/36207752/how-can-i-start-a-remote-service-using-terraform-provisioning
-      "echo 'server started!'",
     ]
     connection {
       type        = "ssh"
@@ -103,7 +80,7 @@ resource "terraform_data" "run-server" {
 }
 
 resource "yandex_vpc_network" "network-1" {
-  name = "network-fun-facts"
+  name = "network-fun-facts-1"
 }
 
 resource "yandex_vpc_subnet" "subnet-1" {
